@@ -62,16 +62,11 @@ class CircularFingerprint(Featurizer):
     mol : RDKit Mol
         Molecule.
     """
-    from rdkit import Chem
-    from rdkit.Chem import rdMolDescriptors
     if self.sparse:
       info = {}
       fp = rdMolDescriptors.GetMorganFingerprint(
-          mol,
-          self.radius,
-          useChirality=self.chiral,
-          useBondTypes=self.bonds,
-          useFeatures=self.features,
+          mol, self.radius, useChirality=self.chiral,
+          useBondTypes=self.bonds, useFeatures=self.features,
           bitInfo=info)
       fp = fp.GetNonzeroElements()  # convert to a dict
 
@@ -85,14 +80,19 @@ class CircularFingerprint(Featurizer):
           smiles = Chem.MolToSmiles(frag)
           fp_smiles[fragment_id] = {'smiles': smiles, 'count': count}
         fp = fp_smiles
+    elif self.counts:
+        info = {}
+        fpbv = rdMolDescriptors.GetMorganFingerprintAsBitVect(
+          mol, self.radius, nBits=self.size, useChirality=self.chiral,
+          useBondTypes=self.bonds, useFeatures=self.features, bitInfo=info)
+        fp = np.zeros((1,), dtype=int)
+        DataStructs.ConvertToNumpyArray(fpbv,fp)
+        for b,c in info.items():
+            fp[b] = len(c)
     else:
       fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
-          mol,
-          self.radius,
-          nBits=self.size,
-          useChirality=self.chiral,
-          useBondTypes=self.bonds,
-          useFeatures=self.features)
+          mol, self.radius, nBits=self.size, useChirality=self.chiral,
+          useBondTypes=self.bonds, useFeatures=self.features)
     return fp
 
   def __hash__(self):
